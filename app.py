@@ -1,10 +1,25 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify,json
 import requests
+import random
+import string
 from utils.constants import consumer_key,consumer_secret,base_url
 
 
 app = Flask(__name__)
 # CORS(app)
+
+'''
+Client End 
+data => amount -> phone number-> email -> onclick of checkout : 
+ - post to /get-pesapal-token 
+ - on response we save the token info. (local storage , data structure ) 
+ - post to /registerIPNURL
+ - on response we save the ipn_id info. (local storage , data structure )
+ - use the token and ipn_id info to submit a checkout option request (mpesa,airtel money, banking options )
+ 
+
+
+'''
 
 @app.route('/get-pesapal-token', methods=['POST'])
 def get_pesapaltoken():
@@ -62,6 +77,91 @@ def register_ipn():
         
     except requests.exceptions.RequestException as e:
         return jsonify({"error" : str(e)}), 500
+    
+    
+# after getting the token and ipn_id from above process , we are ready to submit a checkout 
+# process for our users 
+def generate_random_id(length=12):
+    return ''.join(random.choices(string.ascii_letters + string.digits, k=length))
+
+@app.route('/submit-order', methods=['POST'])
+def submit_order():
+    # capture info from client
+    submitURL = f"{base_url}/api/Transactions/SubmitOrderRequest" 
+    print(submitURL)
+    data = request.get_json()
+    session_token  = data.get("sessionToken")
+    ipn_id = data.get("ipnId")
+    # ensure the amount is an integer 
+    # 5,000 : clean using str operation substring : 5000
+    intAmt = data.get("amount")
+    email = data.get("emailCust")
+    phone = data.get("phoneCust")
+    lname = data.get("lname")
+    fname = data.get("fname")
+    
+    # generate random ids for my transaction 
+    transaction_id = generate_random_id()
+    print(transaction_id)
+    
+    # the callback url is used to return transaction info i.e. success or failure from redirect url
+    # if success it gives the ordertrackingId and merchantIds
+    # a hosted .html page 
+    order_request = {
+            "id": transaction_id,
+            "currency": "KES",
+            "amount": intAmt,
+            "description": "Payment description goes here",
+            "callback_url": "https://lucent-moxie-7b30b4.netlify.app/",
+            "redirect_mode": "",
+            "notification_id": ipn_id,
+            "branch": "Pesapal APIS",
+            "billing_address": {
+                "email_address": email,
+                "phone_number": phone,
+                "country_code": "KE",
+                "first_name": fname,
+                "middle_name": "",
+                "last_name": lname,
+                "line_1": "Pesapal Limited",
+                "line_2": "",
+                "city": "",
+                "state": "",
+                "postal_code": "",
+                "zip_code": ""
+            }
+            
+    }  
+    print(order_request)
+    try:
+        headers = {
+            "Content-Type": "application/json",
+            "Accept" : "application/json",
+            "Authorization" : f"Bearer {session_token}"
+        }
+        response = requests.post(submitURL,headers=headers,json=order_request)
+        print(response)
+        response.raise_for_status()
+        result = response.json()
+        print("Pesapal API response:", result)
+        
+        response.raise_for_status()
+        #extract necessary info
+        return jsonify({
+            "merchant_reference": result.get("merchant_reference"),
+            "order_tracking_id" : result.get("order_tracking_id"),
+            "redirect_url": result.get("redirect_url")
+        }), response.status_code
+        
+    except requests.exceptions.RequestException as e:
+        return jsonify({"error" : str(e)}), 500
+    
+    
+    
+    # confirming the payment status i.e. did the user actually pay or not ,and save transaction
+    # to db. 
+     
+
 
 if __name__ == '__main__':
     app.run(port=5000)
