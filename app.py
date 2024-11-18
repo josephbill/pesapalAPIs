@@ -13,8 +13,8 @@ def get_pesapaltoken():
     print(token_url)
     # consumer key and secret object
     authtokens = {
-        "consumer_key" : "a0VglCdF8eS2+DmtRALSUmBHQ4m/dkj5",
-        "consumer_secret" : "xY1Yl9FC/YKROa+VYwB5DxhT/Bg="
+        "consumer_key" : consumer_key,
+        "consumer_secret" : consumer_secret
     }
     
     print(authtokens)

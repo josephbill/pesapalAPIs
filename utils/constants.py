@@ -1,4 +1,3 @@
-consumer_key = "a0VglCdF8eS2+DmtRALSUmBHQ4m/dkj5"
-consumer_secret = "xY1Yl9FC/YKROa+VYwB5DxhT/Bg="
+consumer_key = "qkio1BGGYAXTu2JOfm7XSXNruoZsrqEW"
+consumer_secret = "osGQ364R49cXKeOYSpaOnT++rHs="
 base_url = "https://cybqa.pesapal.com/pesapalv3"
-test=".hello"
