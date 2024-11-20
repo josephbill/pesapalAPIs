@@ -16,8 +16,9 @@ data => amount -> phone number-> email -> onclick of checkout :
  - post to /registerIPNURL
  - on response we save the ipn_id info. (local storage , data structure )
  - use the token and ipn_id info to submit a checkout option request (mpesa,airtel money, banking options )
- 
-
+ - Once you get the payment URL , capture the OrderTrackingID from appended URL parameter e.g 
+https://cybqa.pesapal.com/pesapaliframe/PesapalIframe3/Index?OrderTrackingId=0b505564-2540-40d9-9cf1-dc7ee98602be
+ - in js using the window object capture the orderTrackingID parameter appended to URL 
 
 '''
 
@@ -160,7 +161,29 @@ def submit_order():
     
     # confirming the payment status i.e. did the user actually pay or not ,and save transaction
     # to db. 
-     
+@app.route('/get-payment-status', methods=['GET'])
+def get_payment_status():
+    # get the orderTRacking Id and status token from the request parameters 
+    order_tracking_id = request.args.get('orderTrackingId')
+    status_token = request.headers.get('Authorization')
+    
+    # define the status url frm pesapal 
+    pesapal_status_url = f"https://cybqa.pesapal.com/pesapalv3/api/Transactions/GetTransactionStatus?orderTrackingId={order_tracking_id}"
+    
+    headers = {
+        "Authorization" : status_token
+    }
+    
+    try:
+        response = requests.get(pesapal_status_url, headers=headers)
+        response.raise_for_status()
+        result = response.json()
+        print(result)
+        return jsonify(result), response.status_code
+        
+    except requests.exceptions.RequestException as e:
+        print("error : ", e)
+        return jsonify({"error" :str(e)}), 500 
 
 
 if __name__ == '__main__':
